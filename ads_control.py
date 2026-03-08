@@ -7,7 +7,7 @@ TOKEN = os.environ["FB_TOKEN"]
 CAMPAIGN_ID = "120241647150160573"
 NEW_BUDGET = 250000
 
-GRAPH_URL = f"https://graph.facebook.com/v19.0/{CAMPAIGN_ID}"
+GRAPH_URL = f"https://graph.facebook.com/v25.0/{CAMPAIGN_ID}"
 
 def change_budget():
 
