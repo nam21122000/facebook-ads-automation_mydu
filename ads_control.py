@@ -1,147 +1,45 @@
 import requests
-import pandas as pd
 import os
-import re
 import json
-import time
-import random
-import gspread
-from google.oauth2.service_account import Credentials
 
 TOKEN = os.environ["FB_TOKEN"]
-SHEET_ID = os.environ["SHEET_ID"]
-SHEET_NAME = os.environ["SHEET_NAME"]
 
-GRAPH_URL = "https://graph.facebook.com/v19.0/"
+CAMPAIGN_ID = "120231550500180390"
+NEW_BUDGET = 2000000
 
-creds_json = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+GRAPH_URL = f"https://graph.facebook.com/v19.0/{CAMPAIGN_ID}"
 
-scope = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+def change_budget():
 
-creds = Credentials.from_service_account_info(creds_json, scopes=scope)
-client = gspread.authorize(creds)
+    payload = {
+        "daily_budget": NEW_BUDGET,
+        "access_token": TOKEN
+    }
 
-sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+    print("===== DEBUG START =====")
+    print("URL:", GRAPH_URL)
+    print("Payload:", json.dumps(payload, indent=2))
 
-data = sheet.get_all_records()
-df = pd.DataFrame(data)
+    try:
 
-headers = sheet.row_values(1)
-RESULT_COL = headers.index("Kết quả") + 1
+        response = requests.post(GRAPH_URL, data=payload)
 
-VALID_ACTIONS = {"Tắt", "Tăng ngân sách", "Giảm"}
+        print("Status Code:", response.status_code)
 
+        try:
+            data = response.json()
+            print("Response JSON:")
+            print(json.dumps(data, indent=2))
+        except:
+            print("Response Text:")
+            print(response.text)
 
-def parse_budget(value):
-    if pd.isna(value):
-        return None
-    value = re.sub(r"[^\d]", "", str(value))
-    return int(value) if value else None
+    except Exception as e:
 
+        print("Request failed:", str(e))
 
-def process_batch(batch, row_map):
-
-    retry_batch = []
-    retry_rows = []
-
-    r = requests.post(
-        GRAPH_URL,
-        data={
-            "access_token": TOKEN,
-            "batch": json.dumps(batch)
-        }
-    )
-
-    responses = r.json()
-
-    for i, resp in enumerate(responses):
-
-        row_index = row_map[i]
-
-        if resp["code"] == 200:
-
-            sheet.update_cell(row_index, RESULT_COL, "Thành công")
-
-        else:
-
-            retry_batch.append(batch[i])
-            retry_rows.append(row_index)
-
-    return retry_batch, retry_rows
+    print("===== DEBUG END =====")
 
 
-def retry_failed(batch, row_map):
-
-    for attempt in range(4):
-
-        if not batch:
-            return
-
-        wait = 2 ** attempt + random.uniform(0, 1)
-        print("Retry attempt:", attempt + 1, "waiting", wait)
-
-        time.sleep(wait)
-
-        batch, row_map = process_batch(batch, row_map)
-
-    for row_index in row_map:
-        sheet.update_cell(row_index, RESULT_COL, "Lỗi sau retry")
-
-
-batch = []
-row_map = []
-
-for i, row in df.iterrows():
-
-    campaign_id = str(row["Campaign ID"]).strip()
-    action = str(row["Điều Chỉnh"]).strip()
-
-    if action not in VALID_ACTIONS:
-        continue
-
-    budget = parse_budget(row["Ngân sách"])
-    sheet_row = i + 2
-
-    if not campaign_id or campaign_id == "nan":
-        continue
-
-    if action == "Tắt":
-
-        batch.append({
-            "method": "POST",
-            "relative_url": campaign_id,
-            "body": "status=PAUSED"
-        })
-
-        row_map.append(sheet_row)
-
-    elif action in ["Tăng ngân sách", "Giảm"] and budget:
-
-        batch.append({
-            "method": "POST",
-            "relative_url": campaign_id,
-            "body": f"daily_budget={budget}"
-        })
-
-        row_map.append(sheet_row)
-
-    if len(batch) >= 50:
-
-        retry_batch, retry_rows = process_batch(batch, row_map)
-
-        retry_failed(retry_batch, retry_rows)
-
-        batch = []
-        row_map = []
-
-        time.sleep(random.uniform(1, 2))
-
-
-if batch:
-
-    retry_batch, retry_rows = process_batch(batch, row_map)
-
-    retry_failed(retry_batch, retry_rows)
+if __name__ == "__main__":
+    change_budget()
