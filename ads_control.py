@@ -4,7 +4,7 @@ import json
 
 TOKEN = os.environ["FB_TOKEN"]
 
-CAMPAIGN_ID = "120231550500180390"
+CAMPAIGN_ID = "120241647150160573"
 NEW_BUDGET = 2000000
 
 GRAPH_URL = f"https://graph.facebook.com/v19.0/{CAMPAIGN_ID}"
