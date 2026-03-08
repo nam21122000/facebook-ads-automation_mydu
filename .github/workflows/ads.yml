@@ -4,21 +4,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-script:
+  run-bot:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+      - name: Install libraries
+        run: |
+          pip install requests pandas gspread google-auth
 
-    - name: Install packages
-      run: |
-        pip install pandas requests gspread google-auth
-
-    - name: Run script
-      run: python ads_control.py
+      - name: Run bot
+        run: python ads_control.py
+        env:
+          FB_TOKEN: ${{ secrets.FB_TOKEN }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_NAME: ${{ secrets.SHEET_NAME }}
