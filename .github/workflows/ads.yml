@@ -2,6 +2,9 @@ name: Facebook Ads Automation
 
 on:
   workflow_dispatch:
+  schedule:
+  - cron: "15 19 * * *"
+  - cron: "15 20 * * *"
 
 jobs:
   run-bot:
