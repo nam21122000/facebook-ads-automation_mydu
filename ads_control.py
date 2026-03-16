@@ -98,6 +98,10 @@ for i, row in df.iterrows():
 
     campaign_id = str(row["Campaign ID"]).strip()
     action = str(row["Điều Chỉnh"]).strip()
+    
+    result = str(row.get("Kết quả", "")).strip()
+    if result == "Thành công":
+        continue
 
     if action not in VALID_ACTIONS:
         continue
